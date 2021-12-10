@@ -1,0 +1,21 @@
+name: Merge to Formatting
+
+on:
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  sync-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Merge master -> formatting
+        uses: devmasx/merge-branch@master
+        with:
+          type: now
+          from_branch: master
+          target_branch: formatting
+          github_token: ${{ github.token }}
+          message: auto-merge from master

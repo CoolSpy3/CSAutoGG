@@ -1,0 +1,51 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'com.coolspy3'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://jitpack.io/'
+    }
+    maven {
+        url = uri 'https://maven.pkg.github.com/coolspy3/csmodloader'
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+            password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
+    maven {
+        url = uri 'https://maven.pkg.github.com/coolspy3/cspackets'
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+            password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
+}
+
+configurations {
+    libraries
+}
+
+configurations.compileClasspath.extendsFrom(configurations.libraries)
+
+dependencies {
+    compileOnly 'com.coolspy3:csmodloader:1.0.1'
+    implementation 'com.coolspy3:cspackets:1.1.1'
+    testImplementation     'junit:junit:4.13'
+}
+
+jar {
+    from(configurations.libraries) {
+        into 'META-INF/libraries'
+    }
+
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
