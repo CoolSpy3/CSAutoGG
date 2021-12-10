@@ -26,6 +26,13 @@ repositories {
             password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
         }
     }
+    maven {
+        url = uri 'https://maven.pkg.github.com/coolspy3/csutils'
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+            password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
 }
 
 configurations {
@@ -36,7 +43,8 @@ configurations.compileClasspath.extendsFrom(configurations.libraries)
 
 dependencies {
     compileOnly 'com.coolspy3:csmodloader:1.0.1'
-    implementation 'com.coolspy3:cspackets:1.1.1'
+    compileOnly 'com.coolspy3:cspackets:1.2.0'
+    compileOnly 'com.coolspy3:csutils:1.0.0'
     testImplementation     'junit:junit:4.13'
 }
 
