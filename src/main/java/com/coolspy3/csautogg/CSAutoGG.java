@@ -19,11 +19,10 @@ import com.coolspy3.csmodloader.mod.Mod;
 import com.coolspy3.csmodloader.network.PacketHandler;
 import com.coolspy3.csmodloader.network.SubscribeToPacketStream;
 import com.coolspy3.csmodloader.network.packet.Packet;
-import com.coolspy3.cspackets.datatypes.MCColor;
+import com.coolspy3.csmodloader.util.Utils;
 import com.coolspy3.cspackets.packets.ClientChatSendPacket;
-import com.coolspy3.cspackets.packets.ServerChatSendPacket;
+import com.coolspy3.util.ClientChatReceiveEvent;
 import com.coolspy3.util.ModUtil;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -32,8 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Mod(id = "csautogg", name = "CSAutoGG",
-        description = "Automatically runs commands at the end of Hypixel games.", version = "1.0.0",
-        dependencies = {"csmodloader:[1,2)", "cspackets:[1.2,2)", "csutils:[1,2)"})
+        description = "Automatically runs commands at the end of Hypixel games.", version = "1.1.0",
+        dependencies = {"csmodloader:[1,2)", "cspackets:[1.2,2)", "csutils:[1.1,2)"})
 public class CSAutoGG implements Entrypoint
 {
 
@@ -44,28 +43,26 @@ public class CSAutoGG implements Entrypoint
     public static final Map<String, String> other = new ConcurrentHashMap<>();
     private boolean isRunning;
 
+    public CSAutoGG()
+    {
+        Utils.reporting(Config::load);
+        this.loadTriggers();
+    }
+
     @Override
     public void init(PacketHandler handler)
     {
-        try
-        {
-            Config.load();
-        }
-        catch (IOException e)
-        {
-            logger.error("Error loading Config", e);
-        }
-        ModUtil.executeAsync(this::loadTriggers);
         handler.register(this);
-        handler.register(new AutoGGCommand());
+        handler.register(new AutoGGCommand()::register);
     }
 
     @SubscribeToPacketStream
-    public void onChat(ServerChatSendPacket event)
+    public void onChat(ClientChatReceiveEvent event)
     {
         if (isRunning) return;
 
-        String unformattedText = MCColor.stripFormatting(event.msg);
+        String msg = event.msg;
+
         Iterator<Pattern> var3;
         Pattern trigger;
         var3 = CSAutoGG.ggRegexes.get("triggers").iterator();
@@ -73,7 +70,7 @@ public class CSAutoGG implements Entrypoint
         while (var3.hasNext())
         {
             trigger = (Pattern) var3.next();
-            if (trigger.matcher(unformattedText).matches())
+            if (trigger.matcher(msg).matches())
             {
                 isRunning = true;
                 this.sayGG(true, 240);
