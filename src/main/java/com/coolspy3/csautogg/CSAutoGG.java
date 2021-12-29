@@ -23,6 +23,7 @@ import com.coolspy3.csmodloader.util.Utils;
 import com.coolspy3.cspackets.packets.ClientChatSendPacket;
 import com.coolspy3.util.ClientChatReceiveEvent;
 import com.coolspy3.util.ModUtil;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -31,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Mod(id = "csautogg", name = "CSAutoGG",
-        description = "Automatically runs commands at the end of Hypixel games.", version = "1.1.0",
+        description = "Automatically runs commands at the end of Hypixel games.", version = "1.1.1",
         dependencies = {"csmodloader:[1,2)", "cspackets:[1.2,2)", "csutils:[1.1,2)"})
 public class CSAutoGG implements Entrypoint
 {
@@ -41,27 +42,35 @@ public class CSAutoGG implements Entrypoint
     public static final Map<String, List<Pattern>> ggRegexes = new ConcurrentHashMap<>();
     public static final Map<String, Pattern> otherRegexes = new ConcurrentHashMap<>();
     public static final Map<String, String> other = new ConcurrentHashMap<>();
-    private boolean isRunning;
+    private volatile boolean isRunning = false;
+
+    static
+    {
+        loadTriggers();
+    }
 
     public CSAutoGG()
     {
         Utils.reporting(Config::load);
-        this.loadTriggers();
+    }
+
+    @Override
+    public Entrypoint create()
+    {
+        return new CSAutoGG();
     }
 
     @Override
     public void init(PacketHandler handler)
     {
         handler.register(this);
-        handler.register(new AutoGGCommand()::register);
+        handler.register(new AutoGGCommand()::register, ClientChatSendPacket.class);
     }
 
     @SubscribeToPacketStream
     public void onChat(ClientChatReceiveEvent event)
     {
         if (isRunning) return;
-
-        String msg = event.msg;
 
         Iterator<Pattern> var3;
         Pattern trigger;
@@ -70,7 +79,7 @@ public class CSAutoGG implements Entrypoint
         while (var3.hasNext())
         {
             trigger = (Pattern) var3.next();
-            if (trigger.matcher(msg).matches())
+            if (trigger.matcher(event.msg).matches())
             {
                 isRunning = true;
                 this.sayGG(true, 240);
@@ -97,7 +106,7 @@ public class CSAutoGG implements Entrypoint
                 {
                     Packet packet = new ClientChatSendPacket(msg);
 
-                    if (!PacketHandler.getLocal().dispatch(new ClientChatSendPacket(msg)))
+                    if (!PacketHandler.getLocal().dispatch(packet))
                         PacketHandler.getLocal().sendPacket(packet);
                 }
             }
@@ -117,7 +126,7 @@ public class CSAutoGG implements Entrypoint
         });
     }
 
-    public void loadTriggers()
+    public static void loadTriggers()
     {
         try
         {
@@ -130,7 +139,7 @@ public class CSAutoGG implements Entrypoint
         }
     }
 
-    public String downloadTriggers() throws IOException
+    public static String downloadTriggers() throws IOException
     {
         HttpURLConnection connection = null;
         try
@@ -157,7 +166,7 @@ public class CSAutoGG implements Entrypoint
         }
     }
 
-    public void getDataFromDownloadedTriggers(JsonObject triggerJson)
+    public static void getDataFromDownloadedTriggers(JsonObject triggerJson)
     {
         ggRegexes.clear();
         otherRegexes.clear();
