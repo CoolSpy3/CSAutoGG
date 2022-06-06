@@ -12,27 +12,6 @@ repositories {
     maven {
         url 'https://jitpack.io/'
     }
-    maven {
-        url = uri 'https://maven.pkg.github.com/coolspy3/csmodloader'
-        credentials {
-            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
-            password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
-        }
-    }
-    maven {
-        url = uri 'https://maven.pkg.github.com/coolspy3/cspackets'
-        credentials {
-            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
-            password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
-        }
-    }
-    maven {
-        url = uri 'https://maven.pkg.github.com/coolspy3/csutils'
-        credentials {
-            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
-            password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
-        }
-    }
 }
 
 configurations {
@@ -42,9 +21,9 @@ configurations {
 configurations.compileClasspath.extendsFrom(configurations.libraries)
 
 dependencies {
-    compileOnly 'com.coolspy3:csmodloader:1.0.1'
-    compileOnly 'com.coolspy3:cspackets:1.2.0'
-    compileOnly 'com.coolspy3:csutils:1.1.0'
+    compileOnly 'com.github.coolspy3:csmodloader:1.3.1'
+    compileOnly 'com.github.coolspy3:cspackets:1.2.1'
+    compileOnly 'com.github.coolspy3:csutils:1.1.1'
     testImplementation     'junit:junit:4.13'
 }
 

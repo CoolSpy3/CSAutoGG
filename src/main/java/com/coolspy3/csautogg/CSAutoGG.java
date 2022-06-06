@@ -33,8 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Mod(id = "csautogg", name = "CSAutoGG",
-        description = "Automatically runs commands at the end of Hypixel games.", version = "1.1.1",
-        dependencies = {"csmodloader:[1,2)", "cspackets:[1.2,2)", "csutils:[1.1,2)"})
+        description = "Automatically runs commands at the end of Hypixel games.", version = "1.2.0",
+        dependencies = {"csmodloader:[1.3.1,2)", "cspackets:[1.2.1,2)", "csutils:[1.1.1,2)"})
 public class CSAutoGG implements Entrypoint
 {
 
