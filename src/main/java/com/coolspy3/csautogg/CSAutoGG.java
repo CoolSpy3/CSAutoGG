@@ -5,14 +5,14 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import com.coolspy3.csmodloader.mod.Entrypoint;
 import com.coolspy3.csmodloader.mod.Mod;
@@ -24,9 +24,10 @@ import com.coolspy3.cspackets.packets.ClientChatSendPacket;
 import com.coolspy3.util.ClientChatReceiveEvent;
 import com.coolspy3.util.ModUtil;
 
+import club.sk1er.mods.autogg.tasks.data.TriggersSchema;
+import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,9 +40,7 @@ public class CSAutoGG implements Entrypoint
 
     private static final Logger logger = LoggerFactory.getLogger(CSAutoGG.class);
 
-    public static final Map<String, List<Pattern>> ggRegexes = new ConcurrentHashMap<>();
-    public static final Map<String, Pattern> otherRegexes = new ConcurrentHashMap<>();
-    public static final Map<String, String> other = new ConcurrentHashMap<>();
+    public static final List<Pattern> ggRegexes = new CopyOnWriteArrayList<>();
     private volatile boolean isRunning = false;
 
     static
@@ -74,7 +73,7 @@ public class CSAutoGG implements Entrypoint
 
         Iterator<Pattern> var3;
         Pattern trigger;
-        var3 = CSAutoGG.ggRegexes.get("triggers").iterator();
+        var3 = CSAutoGG.ggRegexes.iterator();
 
         while (var3.hasNext())
         {
@@ -130,8 +129,9 @@ public class CSAutoGG implements Entrypoint
     {
         try
         {
-            JsonObject json = JsonParser.parseString(downloadTriggers()).getAsJsonObject();
-            getDataFromDownloadedTriggers(json);
+            // JsonObject json = JsonParser.parseString(downloadTriggers()).getAsJsonObject();
+            getDataFromDownloadedTriggers(
+                    new Gson().fromJson(downloadTriggers(), TriggersSchema.class));
         }
         catch (Exception e)
         {
@@ -145,7 +145,7 @@ public class CSAutoGG implements Entrypoint
         try
         {
             connection = (HttpURLConnection) (new URL(
-                    "http://static.sk1er.club/autogg/regex_triggers_new.json").openConnection());
+                    "http://static.sk1er.club/autogg/regex_triggers_3.json").openConnection());
             connection.setRequestMethod("GET");
             connection.setUseCaches(false);
             connection.addRequestProperty("User-Agent", "Mozilla/4.76 (Sk1er AutoGG)");
@@ -166,101 +166,10 @@ public class CSAutoGG implements Entrypoint
         }
     }
 
-    public static void getDataFromDownloadedTriggers(JsonObject triggerJson)
+    public static void getDataFromDownloadedTriggers(TriggersSchema triggerJson)
     {
-        ggRegexes.clear();
-        otherRegexes.clear();
-        other.clear();
-
-        JsonObject firstServerObject;
-        try
-        {
-            firstServerObject = triggerJson.get("servers").getAsJsonObject().get(
-                    (String) keySet(triggerJson.get("servers").getAsJsonObject()).iterator().next())
-                    .getAsJsonObject();
-        }
-        catch (NullPointerException var15)
-        {
-            setDefaultTriggerData();
-            return;
-        }
-
-        Set<String> ggOptions = keySet(firstServerObject.get("gg_triggers").getAsJsonObject());
-        Set<String> otherPatternOptions =
-                keySet(firstServerObject.get("other_patterns").getAsJsonObject());
-        Set<String> otherOptions = keySet(firstServerObject.get("other").getAsJsonObject());
-        Iterator<String> var5 = ggOptions.iterator();
-
-        while (var5.hasNext())
-        {
-            String s = (String) var5.next();
-            ggRegexes.put(s, new ArrayList<>());
-        }
-
-        Set<String> keySet;
-        try
-        {
-            keySet = keySet(triggerJson.get("servers").getAsJsonObject());
-        }
-        catch (NullPointerException var14)
-        {
-            return;
-        }
-
-        Iterator<String> var7 = keySet.iterator();
-
-        String a;
-        do
-        {
-            if (!var7.hasNext())
-            {
-                setDefaultTriggerData();
-                return;
-            }
-
-            a = (String) var7.next();
-        }
-        while (!Pattern.compile(a).matcher("mc.hypixel.net").matches());
-
-        JsonObject data = triggerJson.get("servers").getAsJsonObject().get(a).getAsJsonObject();
-        Iterator<String> var10 = ggOptions.iterator();
-
-        String s;
-        while (var10.hasNext())
-        {
-            s = (String) var10.next();
-            Iterator<JsonElement> var12 =
-                    data.get("gg_triggers").getAsJsonObject().get(s).getAsJsonArray().iterator();
-
-            while (var12.hasNext())
-            {
-                JsonElement j = (JsonElement) var12.next();
-                ggRegexes.get(s).add(Pattern.compile(j.toString()
-                        .substring(1, j.toString().length() - 1).replaceAll("\\\\{2}", "\\\\")));
-            }
-        }
-
-        var10 = otherPatternOptions.iterator();
-
-        String p;
-        while (var10.hasNext())
-        {
-            s = (String) var10.next();
-            p = data.get("other_patterns").getAsJsonObject().get(s).toString();
-            otherRegexes.put(s,
-                    Pattern.compile(p.substring(1, p.length() - 1).replaceAll("\\\\{2}", "\\\\")
-                            .replaceAll("(?<!\\\\)\\$\\{antigg_strings}",
-                                    String.join("|", new String[] {"gg"}))));
-        }
-
-        var10 = otherOptions.iterator();
-
-        while (var10.hasNext())
-        {
-            s = (String) var10.next();
-            p = data.get("other").getAsJsonObject().get(s).toString();
-            other.put(s, p.substring(1, p.length() - 1));
-        }
+        Stream.of(triggerJson.getServers()).flatMap(server -> Stream.of(server.getTriggers()))
+                .forEach(trigger -> ggRegexes.add(Pattern.compile(trigger.getPattern())));
     }
 
     public static Set<String> keySet(JsonObject json) throws NullPointerException
@@ -277,12 +186,12 @@ public class CSAutoGG implements Entrypoint
         return keySet;
     }
 
-    private static void setDefaultTriggerData()
-    {
-        Pattern nonMatching = Pattern.compile("$^");
-        otherRegexes.put("antigg", nonMatching);
-        otherRegexes.put("anti_karma", nonMatching);
-        other.put("msg", "");
-    }
+    // private static void setDefaultTriggerData()
+    // {
+    // Pattern nonMatching = Pattern.compile("$^");
+    // otherRegexes.put("antigg", nonMatching);
+    // otherRegexes.put("anti_karma", nonMatching);
+    // other.put("msg", "");
+    // }
 
 }
