@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import com.coolspy3.csmodloader.mod.Entrypoint;
 import com.coolspy3.csmodloader.mod.Mod;
@@ -24,16 +23,15 @@ import com.coolspy3.cspackets.packets.ClientChatSendPacket;
 import com.coolspy3.util.ClientChatReceiveEvent;
 import com.coolspy3.util.ModUtil;
 
-import club.sk1er.mods.autogg.tasks.data.TriggersSchema;
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Mod(id = "csautogg", name = "CSAutoGG",
-        description = "Automatically runs commands at the end of Hypixel games.", version = "1.2.0",
+        description = "Automatically runs commands at the end of Hypixel games.", version = "1.2.1",
         dependencies = {"csmodloader:[1.3.1,2)", "cspackets:[1.2.1,2)", "csutils:[1.1.1,2)"})
 public class CSAutoGG implements Entrypoint
 {
@@ -129,9 +127,8 @@ public class CSAutoGG implements Entrypoint
     {
         try
         {
-            // JsonObject json = JsonParser.parseString(downloadTriggers()).getAsJsonObject();
-            getDataFromDownloadedTriggers(
-                    new Gson().fromJson(downloadTriggers(), TriggersSchema.class));
+            JsonObject json = JsonParser.parseString(downloadTriggers()).getAsJsonObject();
+            getDataFromDownloadedTriggers(json);
         }
         catch (Exception e)
         {
@@ -166,10 +163,14 @@ public class CSAutoGG implements Entrypoint
         }
     }
 
-    public static void getDataFromDownloadedTriggers(TriggersSchema triggerJson)
+    public static void getDataFromDownloadedTriggers(JsonObject json)
     {
-        Stream.of(triggerJson.getServers()).flatMap(server -> Stream.of(server.getTriggers()))
-                .forEach(trigger -> ggRegexes.add(Pattern.compile(trigger.getPattern())));
+        json.get("servers").getAsJsonArray().get(0).getAsJsonObject().get("triggers")
+                .getAsJsonArray().forEach(trigger -> {
+                    JsonObject triggerObj = trigger.getAsJsonObject();
+                    if (triggerObj.get("type").getAsInt() == 0)
+                        ggRegexes.add(Pattern.compile(triggerObj.get("pattern").getAsString()));
+                });
     }
 
     public static Set<String> keySet(JsonObject json) throws NullPointerException
